@@ -126,8 +126,9 @@ class Game:
         t1 = Text(f"Current Player: {self.current_player}", (5, 450))
         t1.render(self.screen)
 
-        pygame.draw.rect(self.screen, (0, 100, 255), (self.current_case[0]*self.size, self.current_case[1]*self.size, self.size, self.size), 3)  # width = 3
-
+        pygame.draw.rect(self.screen, (0, 100, 255),
+                         (self.current_case[0] * self.size, self.current_case[1] * self.size, self.size, self.size),
+                         3)  # width = 3
 
     def reset(self):
         self.board.reset()
@@ -140,7 +141,7 @@ class Game:
         else:
             self.current_player = 1 - self.current_player
 
-        piece = self.board.pieces[action//4]
+        piece = self.board.pieces[action // 4]
         if action >= 12:
             move = (action + 2) % 4
         else:
@@ -154,40 +155,40 @@ class Game:
                 if piece != 0:
                     if piece.color == (255, 255, 255):
                         if event.key == pygame.K_UP:
-                            self.execute(self.board.pieces.index(piece)*4 + 0)
+                            self.execute(self.board.pieces.index(piece) * 4 + 0)
                             # piece.move(self.board, 0)
                         elif event.key == pygame.K_RIGHT:
-                            self.execute(self.board.pieces.index(piece)*4 + 1)
+                            self.execute(self.board.pieces.index(piece) * 4 + 1)
                             # piece.move(self.board, 1)
                         elif event.key == pygame.K_DOWN:
-                            self.execute(self.board.pieces.index(piece)*4 + 2)
+                            self.execute(self.board.pieces.index(piece) * 4 + 2)
                             # piece.move(self.board, 2)
                         elif event.key == pygame.K_LEFT:
-                            self.execute(self.board.pieces.index(piece)*4 + 3)
+                            self.execute(self.board.pieces.index(piece) * 4 + 3)
                             # piece.move(self.board, 3)
                     else:
                         print('asdadsas')
                         if event.key == pygame.K_UP:
-                            self.execute(self.board.pieces.index(piece)*4 + 0)
+                            self.execute(self.board.pieces.index(piece) * 4 + 0)
                             # piece.move(self.board, 0)
                         elif event.key == pygame.K_RIGHT:
-                            self.execute(self.board.pieces.index(piece)*4 + 3)
+                            self.execute(self.board.pieces.index(piece) * 4 + 3)
                             # piece.move(self.board, 1)
                         elif event.key == pygame.K_DOWN:
-                            self.execute(self.board.pieces.index(piece)*4 + 2)
+                            self.execute(self.board.pieces.index(piece) * 4 + 2)
                             # piece.move(self.board, 2)
                         elif event.key == pygame.K_LEFT:
-                            self.execute(self.board.pieces.index(piece)*4 + 1)
+                            self.execute(self.board.pieces.index(piece) * 4 + 1)
                             # piece.move(self.board, 3)
 
                 if event.key == pygame.K_w:
-                    self.current_case[1] -= 1
+                    self.current_case[1] = (self.current_case[1] - 1) % 4
                 elif event.key == pygame.K_s:
-                    self.current_case[1] += 1
+                    self.current_case[1] = (self.current_case[1] + 1) % 4
                 elif event.key == pygame.K_a:
-                    self.current_case[0] -= 1
+                    self.current_case[0] = (self.current_case[0] - 1) % 4
                 elif event.key == pygame.K_d:
-                    self.current_case[0] += 1
+                    self.current_case[0] = (self.current_case[0] + 1) % 4
 
 class Text:
     def __init__(self, content, pos, font_size=24, color=(255, 255, 255)):
