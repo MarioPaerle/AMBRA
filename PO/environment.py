@@ -40,7 +40,6 @@ class Board:
         return self.board[*item]
 
     def render(self, game):
-        self.board = np.zeros((4, 4), dtype=object)
         self.create_board()
         for i in range(4):
             for j in range(4):
@@ -68,7 +67,6 @@ class Board:
         pn1 = Pawn((2, 3), 1)
         pn2 = Pawn((1, 3), 1)
         self.pieces = [rb, pb1, pb2, rn, pn1, pn2]
-
 
 
 class Game:

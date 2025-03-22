@@ -17,3 +17,5 @@ while True:
     GAME.update()
     pygame.display.flip()
     GAME.board.pieces[0].move(GAME.board, 0)
+    time.sleep(0.5)
+    print(GAME.board.errors)
