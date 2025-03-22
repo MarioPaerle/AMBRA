@@ -9,13 +9,12 @@ GAME = Game()
 GAME.screen = screen
 
 while True:
-    for event in pygame.event.get():
+    events = pygame.event.get()
+    for event in events:
         if event.type == pygame.QUIT:
             pygame.quit()
             quit()
 
-    GAME.update()
+    if not GAME.board.ended:
+        GAME.update(events)
     pygame.display.flip()
-    GAME.board.pieces[0].move(GAME.board, 0)
-    time.sleep(0.5)
-    print(GAME.board.errors)
