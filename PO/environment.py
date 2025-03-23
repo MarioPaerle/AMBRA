@@ -36,26 +36,28 @@ class Board:
         self.pieces = []
         self.ended = False
         self.winner = None
+        self.dimensions = 4
         self.reset()
 
     def __getitem__(self, item):
         return self.board[*item]
 
     def update(self):
+        """re bianco, controlla se il re bianco si trova vicino ad un pedone nero"""
         rb = self.pieces[0]
         neighbours = neighbour(rb.pos)
         for n in neighbours:
-            if n[0] < 0 or n[1] < 0 or n[0] > 3 or n[1] > 3:
+            if n[0] < 0 or n[1] < 0 or n[0] > self.dimensions - 1 or n[1] > self.dimensions - 1:
                 continue
             casel = self.board[n]
             if casel in (self.pieces[4], self.pieces[5]):
                 self.ended = True
                 self.winner = 1
-
+        """re nero, controlla se il re nero si trova vicino ad un pedone bianco"""
         rn = self.pieces[3]
         neighbours = neighbour(rn.pos)
         for n in neighbours:
-            if n[0] < 0 or n[1] < 0 or n[0] > 3 or n[1] > 3:
+            if n[0] < 0 or n[1] < 0 or n[0] > self.dimensions - 1 or n[1] > self.dimensions - 1:
                 continue
             casel = self.board[n]
             if casel in (self.pieces[1], self.pieces[2]):
@@ -66,8 +68,8 @@ class Board:
 
 
     def render(self, game):
-        for i in range(4):
-            for j in range(4):
+        for i in range(self.dimensions):
+            for j in range(self.dimensions):
                 rect = pygame.Rect(i*game.size, j*game.size, game.size, game.size)
                 color = (139, 69, 19) if (i+j) % 2 == 0 else (222, 184, 135)
                 if color == (255, 255, 255):
@@ -79,7 +81,7 @@ class Board:
                     piece.render(game)
 
     def create_board(self):
-        self.board = np.zeros((4, 4), dtype=object)
+        self.board = np.zeros((self.dimensions, self.dimensions), dtype=object)
         for piece in self.pieces:
             self.board[piece.pos[0], piece.pos[1]] = piece
 
@@ -88,14 +90,14 @@ class Board:
         self.pieces = []
         self.ended = False
         self.winner = None
-        self.board = np.zeros((4, 4), dtype=object)
+        self.board = np.zeros((self.dimensions, self.dimensions), dtype=object)
         rb = King((0, 0), 0)
         pb1 = Pawn((1, 0), 0)
         pb2 = Pawn((2, 0), 0)
 
-        rn = King((3, 3), 1)
-        pn1 = Pawn((2, 3), 1)
-        pn2 = Pawn((1, 3), 1)
+        rn = King((self.dimensions - 1, self.dimensions - 1), 1)
+        pn1 = Pawn((self.dimensions - 2, self.dimensions - 1), 1)
+        pn2 = Pawn((self.dimensions - 3, self.dimensions - 1), 1)
         self.pieces = [rb, pb1, pb2, rn, pn1, pn2]
 
 
@@ -104,7 +106,7 @@ class Game:
         self.name = name
         self.screen = None
         self.board = Board()
-        self.size = 100
+        self.size = 800 // self.board.dimensions
         self.do_render = True
         self.current_player = 0
 
@@ -182,13 +184,13 @@ class Game:
                             # piece.move(self.board, 3)
 
                 if event.key == pygame.K_w:
-                    self.current_case[1] = (self.current_case[1] - 1) % 4
+                    self.current_case[1] = (self.current_case[1] - 1) % self.board.dimensions
                 elif event.key == pygame.K_s:
-                    self.current_case[1] = (self.current_case[1] + 1) % 4
+                    self.current_case[1] = (self.current_case[1] + 1) % self.board.dimensions
                 elif event.key == pygame.K_a:
-                    self.current_case[0] = (self.current_case[0] - 1) % 4
+                    self.current_case[0] = (self.current_case[0] - 1) % self.board.dimensions
                 elif event.key == pygame.K_d:
-                    self.current_case[0] = (self.current_case[0] + 1) % 4
+                    self.current_case[0] = (self.current_case[0] + 1) % self.board.dimensions
 
 class Text:
     def __init__(self, content, pos, font_size=24, color=(255, 255, 255)):

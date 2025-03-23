@@ -3,7 +3,7 @@ from environment import *
 import time
 
 pygame.init()
-screen = pygame.display.set_mode((600, 600))
+screen = pygame.display.set_mode((800, 800))
 
 GAME = Game()
 GAME.screen = screen
