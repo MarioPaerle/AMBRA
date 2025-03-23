@@ -23,7 +23,6 @@ class Piece:
         self.size = None
 
     def move(self, board, move):
-        print(f"Move {move}")
         """Move The piece of one step in the given direction (clockwise starting from the top)"""
 
         if move == 0:
@@ -33,6 +32,8 @@ class Piece:
             elif board[self.pos[0], self.pos[1] + 1] != 0:
                 board.errors.append(2)
                 return 2
+            else:
+                board.errors.append(0)
             self.pos[1] += 1
 
         elif move == 1:
@@ -42,6 +43,8 @@ class Piece:
             elif board[self.pos[0] + 1, self.pos[1]] != 0:
                 board.errors.append(2)
                 return 2
+            else:
+                board.errors.append(0)
             self.pos[0] += 1
 
         elif move == 2:
@@ -51,6 +54,8 @@ class Piece:
             elif board[self.pos[0], self.pos[1] - 1] != 0:
                 board.errors.append(2)
                 return 2
+            else:
+                board.errors.append(0)
             self.pos[1] -= 1
 
         elif move == 3:
@@ -60,6 +65,8 @@ class Piece:
             elif board[self.pos[0] - 1, self.pos[1]] != 0:
                 board.errors.append(2)
                 return 2
+            else:
+                board.errors.append(0)
             self.pos[0] -= 1
 
     def render(self, game):
@@ -71,7 +78,7 @@ class Pawn(Piece):
     def __init__(self, pos, color=0):
         super().__init__(pos, color)
         self.type = 'pawn'
-        if self.color == 0:
+        if self.color == (0, 0, 0):
             self.value = 1
         else:
             self.value = -1
@@ -88,7 +95,7 @@ class King(Piece):
         super().__init__(pos, color)
         self.type = 'king'
         self.size = 20
-        if self.color == 0:
+        if self.color == (0, 0, 0):
             self.value = 10
         else:
             self.value = -10

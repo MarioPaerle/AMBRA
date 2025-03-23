@@ -16,7 +16,7 @@ class Board:
         self.board = None
         self.dimensions = 4
         self.state = np.zeros((self.dimensions, self.dimensions), dtype=object)
-        self.errors = []
+        self.errors = [0]
         self.pieces = []
         self.ended = False
         self.winner = None
@@ -55,8 +55,6 @@ class Board:
             for j in range(self.dimensions):
                 rect = pygame.Rect(i*game.size, j*game.size, game.size, game.size)
                 color = (139, 69, 19) if (i+j) % 2 == 0 else (222, 184, 135)
-                if color == (255, 255, 255):
-                    print(i, j)
                 pygame.draw.rect(game.screen, color=color, rect=rect)
 
                 piece = self.board[i, j]
@@ -72,7 +70,7 @@ class Board:
 
 
     def reset(self):
-        self.errors = []
+        self.errors = [0]
         self.pieces = []
         self.ended = False
         self.winner = None
@@ -85,6 +83,7 @@ class Board:
         pn1 = Pawn((self.dimensions - 2, self.dimensions - 1), 1)
         pn2 = Pawn((self.dimensions - 3, self.dimensions - 1), 1)
         self.pieces = [rb, pb1, pb2, rn, pn1, pn2]
+        self.create_board()
 
 
 class Game:
@@ -103,7 +102,7 @@ class Game:
         self.board.update()
         if self.do_render:
             self.render()
-            self.check_events(events)
+            # self.check_events(events)
         if self.board.ended:
             print(f"Game ended, winner: {self.board.winner}")
 
@@ -117,6 +116,7 @@ class Game:
         pygame.draw.rect(self.screen, (0, 100, 255),
                          (self.current_case[0] * self.size, self.current_case[1] * self.size, self.size, self.size),
                          3)  # width = 3
+        pygame.display.flip()
 
     def reset(self):
         self.board.reset()
@@ -124,7 +124,9 @@ class Game:
     def execute(self, action):
         if self.current_player == 0 and action >= 12:
             print(f"Warning, moving a piece of the other player: {action}")
+            self.board.errors.append(3)
         elif self.current_player == 1 and action < 12:
+            self.board.errors.append(3)
             print(f"Warning, moving a piece of the other player: {action}")
         else:
             self.current_player = 1 - self.current_player
@@ -155,7 +157,6 @@ class Game:
                             self.execute(self.board.pieces.index(piece) * 4 + 3)
                             # piece.move(self.board, 3)
                     else:
-                        print('asdadsas')
                         if event.key == pygame.K_UP:
                             self.execute(self.board.pieces.index(piece) * 4 + 0)
                             # piece.move(self.board, 0)
@@ -179,14 +180,14 @@ class Game:
                     self.current_case[0] = (self.current_case[0] + 1) % self.board.dimensions
 
     def step(self, action=1):
-        state = self.board.state.T
         self.execute(action)
-        self.board.update()
+        self.update()
         next_state = self.board.state.T
 
         if self.board.errors[-1] != 0:
-            return next_state, -10, True,
+            return next_state, -10, False,
         if self.board.ended:
+            print('caos')
             if self.board.winner == 1:
                 return next_state, -100, True,
             else:
