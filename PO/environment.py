@@ -4,24 +4,6 @@ import numpy as np
 from PO.pieces import Pawn, King
 
 
-class Environment:
-    def __init__(self, name=''):
-        self.renderer = None
-        self.board = None
-
-    def step(self, action):
-        pass
-
-    def reward(self):
-        return None
-
-    def render(self):
-        self.renderer.render(self)
-
-    def add_renderer(self, renderer):
-        self.renderer = renderer
-
-
 class Board:
     def __init__(self, name=''):
         """
@@ -32,11 +14,12 @@ class Board:
         """
         self.name = name
         self.board = None
+        self.dimensions = 4
+        self.state = np.zeros((self.dimensions, self.dimensions), dtype=object)
         self.errors = []
         self.pieces = []
         self.ended = False
         self.winner = None
-        self.dimensions = 4
         self.reset()
 
     def __getitem__(self, item):
@@ -82,8 +65,11 @@ class Board:
 
     def create_board(self):
         self.board = np.zeros((self.dimensions, self.dimensions), dtype=object)
+        self.state = np.zeros((self.dimensions, self.dimensions), dtype=object)
         for piece in self.pieces:
             self.board[piece.pos[0], piece.pos[1]] = piece
+            self.state[piece.pos[0], piece.pos[1]] = piece.value
+
 
     def reset(self):
         self.errors = []
@@ -191,6 +177,26 @@ class Game:
                     self.current_case[0] = (self.current_case[0] - 1) % self.board.dimensions
                 elif event.key == pygame.K_d:
                     self.current_case[0] = (self.current_case[0] + 1) % self.board.dimensions
+
+    def step(self, action=1):
+        state = self.board.state.T
+        self.execute(action)
+        self.board.update()
+        next_state = self.board.state.T
+
+        if self.board.errors[-1] != 0:
+            return next_state, -10, True,
+        if self.board.ended:
+            if self.board.winner == 1:
+                return next_state, -100, True,
+            else:
+                return next_state, 100, True,
+
+        return next_state, 0, False
+
+    def reward(self):
+        return None
+
 
 class Text:
     def __init__(self, content, pos, font_size=24, color=(255, 255, 255)):

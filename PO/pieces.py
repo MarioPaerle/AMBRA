@@ -12,6 +12,7 @@ class Piece:
     def __init__(self, pos, color=0):
         """Create a pawn at the given position"""
         self.pos = list(pos)
+        self.value = 0
         self.image = None
         self.color = None
         if color == 0:
@@ -70,6 +71,10 @@ class Pawn(Piece):
     def __init__(self, pos, color=0):
         super().__init__(pos, color)
         self.type = 'pawn'
+        if self.color == 0:
+            self.value = 1
+        else:
+            self.value = -1
         self.size = 10
 
     def __str__(self):
@@ -83,6 +88,10 @@ class King(Piece):
         super().__init__(pos, color)
         self.type = 'king'
         self.size = 20
+        if self.color == 0:
+            self.value = 10
+        else:
+            self.value = -10
 
     def __str__(self):
         return f"{self.type} - {self.color}"
