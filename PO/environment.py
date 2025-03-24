@@ -5,7 +5,7 @@ from PO.pieces import Pawn, King
 
 
 class Board:
-    def __init__(self, name=''):
+    def __init__(self, name='', dimension=5):
         """
         Re Bianco = 10
         Re Nero = -10
@@ -14,7 +14,7 @@ class Board:
         """
         self.name = name
         self.board = None
-        self.dimensions = 4
+        self.dimensions = dimension
         self.state = np.zeros((self.dimensions, self.dimensions), dtype=object)
         self.errors = [0]
         self.pieces = []
@@ -63,7 +63,7 @@ class Board:
 
     def create_board(self):
         self.board = np.zeros((self.dimensions, self.dimensions), dtype=object)
-        self.state = np.zeros((self.dimensions, self.dimensions), dtype=object)
+        self.state = np.zeros((self.dimensions, self.dimensions), dtype=np.int8)
         for piece in self.pieces:
             self.board[piece.pos[0], piece.pos[1]] = piece
             self.state[piece.pos[0], piece.pos[1]] = piece.value
@@ -87,13 +87,16 @@ class Board:
 
 
 class Game:
-    def __init__(self, name=''):
+    def __init__(self, name='', render=False, dimension=5):
         self.name = name
         self.screen = None
-        self.board = Board()
+        self.board = Board(dimension=dimension)
         self.size = 800 // self.board.dimensions
-        self.do_render = True
+        self.do_render = render
         self.current_player = 0
+
+        if render:
+            self.screen = pygame.display.set_mode((800, 800))
 
         # PC PLAYING
         self.current_case = [0, 0]
@@ -102,7 +105,7 @@ class Game:
         self.board.update()
         if self.do_render:
             self.render()
-            # self.check_events(events)
+            self.check_events(events)
         if self.board.ended:
             print(f"Game ended, winner: {self.board.winner}")
 
@@ -120,8 +123,22 @@ class Game:
 
     def reset(self):
         self.board.reset()
+        return self.board.state.T
 
     def execute(self, action):
+        """
+        Executes a game action based on the current player and the provided action input.
+        Validates whether the action pertains to the correct player. If the action does not
+        correspond to the current player, it appends an error to the board's error list and
+        prints a warning. If the action is valid, it updates the current player and moves
+        the corresponding game piece based on the action.
+
+        :param action: The numeric representation of an action to be performed in the game.
+                       Represents both the piece to move and the direction of the move.
+        :type action: int
+
+        :return: None
+        """
         if self.current_player == 0 and action >= 12:
             print(f"Warning, moving a piece of the other player: {action}")
             self.board.errors.append(3)
@@ -139,6 +156,8 @@ class Game:
         piece.move(self.board, move)
 
     def check_events(self, events):
+        if events is None:
+            return
         for event in events:
             if event.type == pygame.KEYDOWN:
                 piece = self.board[self.current_case[0], self.current_case[1]]
@@ -180,6 +199,17 @@ class Game:
                     self.current_case[0] = (self.current_case[0] + 1) % self.board.dimensions
 
     def step(self, action=1):
+        """
+        Executes a single step in the environment based on the given action. The function
+        handles the logic for updating the current state, calculating rewards, and determining
+        whether the game or process has ended.
+
+        :param action: The action to be executed in the current step.
+        :type action: int
+        :return: A tuple containing the next state (as a transposed state matrix), the reward
+            for the action, and a boolean indicating whether the game/process has ended.
+        :rtype: tuple
+        """
         self.execute(action)
         self.update()
         next_state = self.board.state.T
@@ -187,7 +217,6 @@ class Game:
         if self.board.errors[-1] != 0:
             return next_state, -10, False,
         if self.board.ended:
-            print('caos')
             if self.board.winner == 1:
                 return next_state, -100, True,
             else:
