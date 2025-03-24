@@ -61,8 +61,6 @@ class SimpleRLAgent:
         self.action_dim = action_dim
 
         BRAIN = ConvBrain1
-
-        # Initialize Q-network
         self.q_network = BRAIN(state_dim, action_dim)
         self.target_network = BRAIN(state_dim, action_dim)
         self.target_network.load_state_dict(self.q_network.state_dict())
@@ -70,7 +68,6 @@ class SimpleRLAgent:
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=0.002)
         self.loss_fn = nn.MSELoss()
 
-        # REPLAY BUFFER SIZE
         self.replay_buffer = deque(maxlen=10000)
         self.batch_size = 64
 
@@ -95,7 +92,6 @@ class SimpleRLAgent:
         if len(self.replay_buffer) < self.batch_size:
             return
 
-        # Sample batch from replay buffer
         batch = random.sample(self.replay_buffer, self.batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
 
@@ -105,24 +101,19 @@ class SimpleRLAgent:
         next_states = torch.FloatTensor(np.array(next_states))
         dones = torch.FloatTensor(dones)
 
-        # Compute Q values
         current_q = self.q_network(states).gather(1, actions.unsqueeze(1))
 
-        # Compute target Q values
         with torch.no_grad():
             next_q = self.target_network(next_states).max(1)[0]
             target_q = rewards + (1 - dones) * 0.99 * next_q  # 0.99 is discount factor
 
-        # Compute loss and update
         loss = self.loss_fn(current_q.squeeze(), target_q)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-        # Update target network
         self.update_target_network()
 
-        # Decay epsilon
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
     def update_target_network(self):
@@ -136,7 +127,6 @@ class SimpleRLAgent:
         self.replay_buffer.append((state, action, reward, next_state, done))
 
 
-    # Usage with your custom environment
     def train(self, env, episodes=100):
         for episode in range(episodes):
             state = env.reset()
@@ -144,17 +134,13 @@ class SimpleRLAgent:
             done = False
 
             while not done:
-                # Get action from agent
                 action = self.get_action(state)
 
-                # Take action in environment
                 next_state, reward, done = env.step(action)
                 env.step(rd.randint(12, 23))
 
-                # Store experience
                 self.store_experience(state, action, reward, next_state, done)
 
-                # Update network
                 self.update_network()
 
                 state = next_state
