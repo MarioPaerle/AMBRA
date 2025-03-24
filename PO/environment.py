@@ -2,6 +2,7 @@ import pygame
 import numpy as np
 
 from PO.pieces import Pawn, King
+import time
 
 
 class Board:
@@ -49,7 +50,6 @@ class Board:
 
         self.create_board()
 
-
     def render(self, game):
         for i in range(self.dimensions):
             for j in range(self.dimensions):
@@ -87,7 +87,8 @@ class Board:
 
 
 class Game:
-    def __init__(self, name='', render=False, dimension=5):
+    def __init__(self, name='', render=False, dimension=5, sleep=0):
+        self.sleep = sleep
         self.name = name
         self.screen = None
         self.board = Board(dimension=dimension)
@@ -96,6 +97,7 @@ class Game:
         self.current_player = 0
 
         if render:
+            pygame.init()
             self.screen = pygame.display.set_mode((800, 800))
 
         # PC PLAYING
@@ -106,8 +108,6 @@ class Game:
         if self.do_render:
             self.render()
             self.check_events(events)
-        if self.board.ended:
-            print(f"Game ended, winner: {self.board.winner}")
 
     def render(self):
         self.screen.fill((20, 20, 20))
@@ -120,6 +120,7 @@ class Game:
                          (self.current_case[0] * self.size, self.current_case[1] * self.size, self.size, self.size),
                          3)  # width = 3
         pygame.display.flip()
+        time.sleep(self.sleep)
 
     def reset(self):
         self.board.reset()
@@ -157,7 +158,7 @@ class Game:
 
     def check_events(self, events):
         if events is None:
-            return
+            events = pygame.event.get()
         for event in events:
             if event.type == pygame.KEYDOWN:
                 piece = self.board[self.current_case[0], self.current_case[1]]
@@ -215,17 +216,21 @@ class Game:
         next_state = self.board.state.T
 
         if self.board.errors[-1] != 0:
-            return next_state, -10, False,
+            return next_state, -20, False
         if self.board.ended:
+            # print(f"Game ended, winner: {self.board.winner}")
+
             if self.board.winner == 1:
-                return next_state, -100, True,
+                self.reset()
+                return next_state, -1, True
             else:
-                return next_state, 100, True,
+                self.reset()
+                return next_state, 100, True
 
         return next_state, 0, False
 
     def reward(self):
-        return None
+        return 0
 
 
 class Text:

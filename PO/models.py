@@ -6,6 +6,8 @@ from collections import deque
 import random
 from torch import optim
 from environment import Game
+import random as rd
+import matplotlib.pyplot as plt
 
 """
 Basic Copied Implementation of Deep Q Network to Study.
@@ -30,20 +32,42 @@ class LinearBrain1(nn.Module):
         x = F.relu(self.fc3(x))
         return x
 
+class ConvBrain1(nn.Module):
+    def __init__(self, n, o):
+        super(ConvBrain1, self).__init__()
+        self.n = n
+        self.conv1 = nn.Conv2d(1, 256, 4, padding='same')
+        self.conv2 = nn.Conv2d(256, 64, 3, padding='same')
+        self.conv3 = nn.Conv2d(64, 32, 3, padding='same')
+
+        self.l1 = nn.Linear(n*n*32, 256)
+        self.l2 = nn.Linear(256, o)
+
+    def forward(self, x):
+        x = x.view(x.shape[0], 1, self.n, self.n)
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = x.view(x.shape[0], -1)
+        x = F.relu(self.l1(x))
+        x = F.relu(self.l2(x))
+        return x
+
+
 
 class SimpleRLAgent:
     def __init__(self, state_dim, action_dim):
         self.state_dim = state_dim
         self.action_dim = action_dim
 
-        BRAIN = LinearBrain1
+        BRAIN = ConvBrain1
 
         # Initialize Q-network
         self.q_network = BRAIN(state_dim, action_dim)
         self.target_network = BRAIN(state_dim, action_dim)
         self.target_network.load_state_dict(self.q_network.state_dict())
 
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=0.002)
         self.loss_fn = nn.MSELoss()
 
         # REPLAY BUFFER SIZE
@@ -52,8 +76,12 @@ class SimpleRLAgent:
 
         # EXPLORATION RATE
         self.epsilon = 1.0
-        self.epsilon_min = 0.01
+        self.epsilon_min = 0.12
         self.epsilon_decay = 0.995
+
+
+        # LOSS
+        self.rewards = []
 
     def get_action(self, state):
         if random.random() < self.epsilon:
@@ -109,12 +137,11 @@ class SimpleRLAgent:
 
 
     # Usage with your custom environment
-    def train(self, env, episodes=1000):
+    def train(self, env, episodes=100):
         for episode in range(episodes):
             state = env.reset()
             total_reward = 0
             done = False
-
 
             while not done:
                 # Get action from agent
@@ -122,6 +149,7 @@ class SimpleRLAgent:
 
                 # Take action in environment
                 next_state, reward, done = env.step(action)
+                env.step(rd.randint(12, 23))
 
                 # Store experience
                 self.store_experience(state, action, reward, next_state, done)
@@ -132,10 +160,15 @@ class SimpleRLAgent:
                 state = next_state
                 total_reward += reward
 
+            self.rewards.append(total_reward)
+
             print(f"Episode {episode}, Total Reward: {total_reward}, Epsilon: {agent.epsilon:.2f}")
 
-env = Game(dimension=5)
+env = Game(dimension=5, render=False)
 state_dim = 5
 action_dim = 12
 agent = SimpleRLAgent(state_dim, action_dim)
 agent.train(env)
+
+plt.plot(agent.rewards)
+plt.show()
