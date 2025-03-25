@@ -199,7 +199,7 @@ class Game:
                 elif event.key == pygame.K_d:
                     self.current_case[0] = (self.current_case[0] + 1) % self.board.dimensions
 
-    def step(self, action=1, opponent=False):
+    def step2(self, action=1, opponent=False):
         """
         Executes a single step in the environment based on the given action. The function
         handles the logic for updating the current state, calculating rewards, and determining
@@ -231,6 +231,33 @@ class Game:
                     return next_state, -100, 100, True
                 return next_state, 100, -100, True
         return next_state, 1, 0, False
+
+    def step(self, action=1):
+        """
+        Executes a single step in the environment based on the given action. The function
+        handles the logic for updating the current state, calculating rewards, and determining
+        whether the game or process has ended.
+
+        :param action: The action to be executed in the current step.
+        :type action: int
+        :return: A tuple containing the next state (as a transposed state matrix), the reward
+            for the action, and a boolean indicating whether the game/process has ended.
+        :rtype: tuple
+        """
+        self.execute(action)
+        self.update()
+        next_state = self.board.state.T
+
+        if self.board.errors[-1] != 0:
+            return next_state, -5, 0, True
+        if self.board.ended:
+            if self.board.winner == 1:
+                self.reset()
+                return next_state, -100, 100, True
+            else:
+                self.reset()
+                return next_state, 100, -100, True
+        return next_state, 2, 0, False
 
     def reward(self):
         return 0

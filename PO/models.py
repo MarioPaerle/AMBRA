@@ -22,9 +22,9 @@ class LinearBrain1(nn.Module):
     def __init__(self, n, o):
         super(LinearBrain1, self).__init__()
         self.n = n
-        self.fc1 = nn.Linear(n*n, 128)
-        self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, o)
+        self.fc1 = nn.Linear(n*n, 1024)
+        self.fc2 = nn.Linear(1024, 1024)
+        self.fc3 = nn.Linear(1024, o)
 
     def forward(self, x):
         x = x.reshape(x.shape[0], self.n**2)
@@ -38,11 +38,11 @@ class ConvBrain1(nn.Module):
         super(ConvBrain1, self).__init__()
         self.n = n
         self.conv1 = nn.Conv2d(1, 256, 4, padding='same')
-        self.conv2 = nn.Conv2d(256, 64, 3, padding='same')
-        self.conv3 = nn.Conv2d(64, 32, 3, padding='same')
+        self.conv2 = nn.Conv2d(256, 256, 3, padding='same')
+        self.conv3 = nn.Conv2d(256, 32, 2, padding='same')
 
-        self.l1 = nn.Linear(n*n*32, 256)
-        self.l2 = nn.Linear(256, o)
+        self.l1 = nn.Linear(n*n*32, 384)
+        self.l2 = nn.Linear(384, o)
 
     def forward(self, x):
         x = x.view(x.shape[0], 1, self.n, self.n)
@@ -54,9 +54,108 @@ class ConvBrain1(nn.Module):
         x = F.relu(self.l2(x))
         return x
 
-
-
 class SimpleRLAgent:
+    def __init__(self, state_dim, action_dim, brain):
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+
+        BRAIN = brain
+        self.q_network = BRAIN(state_dim, action_dim)
+        self.target_network = BRAIN(state_dim, action_dim)
+        self.target_network.load_state_dict(self.q_network.state_dict())
+
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=0.002)
+        self.loss_fn = nn.MSELoss()
+
+        self.replay_buffer = deque(maxlen=10000)
+        self.batch_size = 64
+
+        # EXPLORATION RATE
+        self.epsilon = 1.0
+        self.epsilon_min = 0.12
+        self.epsilon_decay = 0.995
+
+
+        # LOSS
+        self.rewards = []
+
+    def get_action(self, state):
+        if random.random() < self.epsilon:
+            return random.randint(0, self.action_dim - 1)
+
+        state = torch.FloatTensor(state).unsqueeze(0)
+        q_values = self.q_network(state)
+        return torch.argmax(q_values).item()
+
+    def update_network(self):
+        if len(self.replay_buffer) < self.batch_size:
+            return
+
+        batch = random.sample(self.replay_buffer, self.batch_size)
+        states, actions, rewards, next_states, dones = zip(*batch)
+
+        states = torch.FloatTensor(np.array(states))
+        actions = torch.LongTensor(actions)
+        rewards = torch.FloatTensor(rewards)
+        next_states = torch.FloatTensor(np.array(next_states))
+        dones = torch.FloatTensor(dones)
+
+        current_q = self.q_network(states).gather(1, actions.unsqueeze(1))
+
+        with torch.no_grad():
+            next_q = self.target_network(next_states).max(1)[0]
+            target_q = rewards + (1 - dones) * 0.99 * next_q  # 0.99 is discount factor
+
+        loss = self.loss_fn(current_q.squeeze(), target_q)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        self.update_target_network()
+
+        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+
+    def update_target_network(self):
+        # Soft update (you could also do hard updates periodically)
+        tau = 0.01
+        for target_param, param in zip(self.target_network.parameters(),
+                                       self.q_network.parameters()):
+            target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
+
+    def store_experience(self, state, action, reward, next_state, done):
+        self.replay_buffer.append((state, action, reward, next_state, done))
+
+
+    def train(self, enemy, env, episodes=400):
+        for episode in range(episodes):
+            state = env.reset()
+            total_reward = 0
+            total_enemy_reward = 0
+            done = False
+
+            while not done:
+                action = self.get_action(state)
+                next_state, reward1, reward2, done = env.step(action)
+
+                enemy_action = enemy.get_action(next_state)
+                enemy_next_state, enemy_reward1, enemy_reward2, enemy_done = env.step(enemy_action + 12)
+
+                self.store_experience(state, action, reward1, next_state, done)
+                enemy.store_experience(next_state, enemy_action, enemy_reward1, enemy_next_state, enemy_done)
+
+                self.update_network()
+                enemy.update_network()
+
+                state = next_state
+                total_reward += reward1 # + enemy_reward2
+                total_enemy_reward += enemy_reward1 # + reward2
+
+            self.rewards.append(total_reward)
+            enemy.rewards.append(total_enemy_reward)
+
+            print(f"Episode {episode}, Total Reward: {total_reward}, Epsilon: {agent.epsilon:.2f}")
+
+class _SimpleRLAgent:
     def __init__(self, state_dim, action_dim):
         self.state_dim = state_dim
         self.action_dim = action_dim
@@ -246,14 +345,16 @@ class SimpleRLAgent:
             print(f"Episode {episode}, Total Reward 1: {total_reward}, Total Reward 2: {total_reward2} Epsilon: {agent.epsilon:.2f}, Moves: {moves}")
 
 def moving_average(data, window_size):
-    kernel = np.ones(window_size) / window_size  # Finestra media
+    kernel = np.ones(window_size) / window_size
     return np.convolve(data, kernel, mode='valid')
 
 env = Game(dimension=5, render=True)
 state_dim = 5
 action_dim = 12
-agent = SimpleRLAgent(state_dim, action_dim)
-agent.train(env)
+agent = SimpleRLAgent(state_dim, action_dim, brain=ConvBrain1)
+agent2 = SimpleRLAgent(state_dim, action_dim, brain=LinearBrain1)
+
+agent.train(agent2, env)
 plt.plot(moving_average(agent.rewards, 10))
-plt.plot(moving_average(agent.rewards2, 10))
+plt.plot(moving_average(agent2.rewards, 10))
 plt.show()
