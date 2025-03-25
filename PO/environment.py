@@ -199,7 +199,7 @@ class Game:
                 elif event.key == pygame.K_d:
                     self.current_case[0] = (self.current_case[0] + 1) % self.board.dimensions
 
-    def step(self, action=1):
+    def step(self, action=1, opponent=False):
         """
         Executes a single step in the environment based on the given action. The function
         handles the logic for updating the current state, calculating rewards, and determining
@@ -216,18 +216,21 @@ class Game:
         next_state = self.board.state.T
 
         if self.board.errors[-1] != 0:
-            return next_state, -20, False
+            return next_state, -5, 0, True
         if self.board.ended:
             # print(f"Game ended, winner: {self.board.winner}")
 
             if self.board.winner == 1:
                 self.reset()
-                return next_state, -1, True
+                if opponent:
+                    return next_state, 100, -100, True
+                return next_state, -100, 100, True
             else:
                 self.reset()
-                return next_state, 100, True
-
-        return next_state, 0, False
+                if opponent:
+                    return next_state, -100, 100, True
+                return next_state, 100, -100, True
+        return next_state, 1, 0, False
 
     def reward(self):
         return 0
