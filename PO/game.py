@@ -1,5 +1,5 @@
 import pygame
-from environment import *
+from PO.environment import *
 import time
 
 pygame.init()

@@ -1,7 +1,7 @@
 import pygame
 import numpy as np
 
-from PO.pieces import Pawn, King
+from pieces import Pawn, King
 import time
 
 
