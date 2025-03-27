@@ -125,7 +125,6 @@ class SimpleRLAgent:
     def store_experience(self, state, action, reward, next_state, done):
         self.replay_buffer.append((state, action, reward, next_state, done))
 
-
     def train(self, enemy, env, episodes=400):
         for episode in range(episodes):
             state = env.reset()
@@ -348,13 +347,14 @@ def moving_average(data, window_size):
     kernel = np.ones(window_size) / window_size
     return np.convolve(data, kernel, mode='valid')
 
-env = Game(dimension=5, render=True)
-state_dim = 5
-action_dim = 12
-agent = SimpleRLAgent(state_dim, action_dim, brain=ConvBrain1)
-agent2 = SimpleRLAgent(state_dim, action_dim, brain=LinearBrain1)
+if __name__ == '__main__':
+    env = Game(dimension=5, render=True)
+    state_dim = 5
+    action_dim = 12
+    agent = SimpleRLAgent(state_dim, action_dim, brain=ConvBrain1)
+    agent2 = SimpleRLAgent(state_dim, action_dim, brain=LinearBrain1)
 
-agent.train(agent2, env)
-plt.plot(moving_average(agent.rewards, 10))
-plt.plot(moving_average(agent2.rewards, 10))
-plt.show()
+    agent.train(agent2, env)
+    plt.plot(moving_average(agent.rewards, 10))
+    plt.plot(moving_average(agent2.rewards, 10))
+    plt.show()
