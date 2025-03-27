@@ -5,7 +5,7 @@ import time
 pygame.init()
 screen = pygame.display.set_mode((800, 800))
 
-GAME = Game()
+GAME = Game(render=True)
 GAME.screen = screen
 
 while True:
