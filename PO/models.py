@@ -16,7 +16,18 @@ Pretty Simple tho
 
 """
 
+class ConvBlock(nn.Module):
+    def __init__(self, end=''):
+        super(ConvBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding='same')
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, padding='same')
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=1, kernel_size=3, padding='same')
 
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        return x
 
 class LinearBrain1(nn.Module):
     def __init__(self, n, o):
@@ -34,21 +45,21 @@ class LinearBrain1(nn.Module):
         return x
 
 class ConvBrain1(nn.Module):
-    def __init__(self, n, o):
+    def __init__(self, n, o, heads=1):
         super(ConvBrain1, self).__init__()
         self.n = n
-        self.conv1 = nn.Conv2d(1, 256, 4, padding='same')
-        self.conv2 = nn.Conv2d(256, 256, 3, padding='same')
-        self.conv3 = nn.Conv2d(256, 32, 2, padding='same')
+        layers = []
+        for i in range(heads):
+            layers.append(ConvBlock(o))
+            layers.append(nn.BatchNorm2d(1))
 
-        self.l1 = nn.Linear(n*n*32, 384)
-        self.l2 = nn.Linear(384, o)
+        self.block = nn.Sequential(*layers)
+        self.l1 = nn.Linear(n*n, 128)
+        self.l2 = nn.Linear(128, o)
 
     def forward(self, x):
         x = x.view(x.shape[0], 1, self.n, self.n)
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
+        x = self.block(x) + x
         x = x.view(x.shape[0], -1)
         x = F.relu(self.l1(x))
         x = F.relu(self.l2(x))
@@ -64,7 +75,7 @@ class SimpleRLAgent:
         self.target_network = BRAIN(state_dim, action_dim)
         self.target_network.load_state_dict(self.q_network.state_dict())
 
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=0.002)
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=0.001)
         self.loss_fn = nn.MSELoss()
 
         self.replay_buffer = deque(maxlen=10000)
@@ -72,15 +83,18 @@ class SimpleRLAgent:
 
         # EXPLORATION RATE
         self.epsilon = 1.0
-        self.epsilon_min = 0.12
-        self.epsilon_decay = 0.995
+        self.epsilon_min = 0.08
+        self.epsilon_decay = 0.999
+
+        self.extracted = 0
 
 
         # LOSS
         self.rewards = []
 
     def get_action(self, state):
-        if random.random() < self.epsilon:
+        self.extracted = random.random()
+        if self.extracted < self.epsilon:
             return random.randint(0, self.action_dim - 1)
 
         state = torch.FloatTensor(state).unsqueeze(0)
@@ -134,25 +148,27 @@ class SimpleRLAgent:
 
             while not done:
                 action = self.get_action(state)
-                next_state, reward1, reward2, done = env.step(action)
+                israndom = self.extracted < self.epsilon
+                next_state, reward1, enemy_reward1, done = env.step(action, israndom)
 
                 enemy_action = enemy.get_action(next_state)
-                enemy_next_state, enemy_reward1, enemy_reward2, enemy_done = env.step(enemy_action + 12)
+                enemy_israndom = enemy.extracted < enemy.epsilon
+                enemy_next_state, enemy_reward2, reward2, enemy_done = env.step(enemy_action + 12, enemy_israndom)
 
-                self.store_experience(state, action, reward1, next_state, done)
-                enemy.store_experience(next_state, enemy_action, enemy_reward1, enemy_next_state, enemy_done)
+                self.store_experience(state, action, reward1 + reward2, next_state, done)
+                enemy.store_experience(next_state, enemy_action, enemy_reward1 + enemy_reward2, enemy_next_state, enemy_done)
 
                 self.update_network()
                 enemy.update_network()
 
                 state = next_state
-                total_reward += reward1 # + enemy_reward2
-                total_enemy_reward += enemy_reward1 # + reward2
+                total_reward += reward1 + reward2
+                total_enemy_reward += enemy_reward1 + enemy_reward2
 
             self.rewards.append(total_reward)
             enemy.rewards.append(total_enemy_reward)
 
-            print(f"Episode {episode}, Total Reward: {total_reward}, Epsilon: {agent.epsilon:.2f}")
+            print(f"Episode {episode}, Total 1 Reward: {total_reward}, Total enemy Reward: {total_enemy_reward}, Epsilon: {agent.epsilon:.2f}")
 
 class _SimpleRLAgent:
     def __init__(self, state_dim, action_dim):
@@ -352,7 +368,7 @@ if __name__ == '__main__':
     state_dim = 5
     action_dim = 12
     agent = SimpleRLAgent(state_dim, action_dim, brain=ConvBrain1)
-    agent2 = SimpleRLAgent(state_dim, action_dim, brain=LinearBrain1)
+    agent2 = SimpleRLAgent(state_dim, action_dim, brain=ConvBrain1)
 
     agent.train(agent2, env)
     plt.plot(moving_average(agent.rewards, 10))

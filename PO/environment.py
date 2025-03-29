@@ -3,6 +3,7 @@ import numpy as np
 
 from pieces import Pawn, King
 import time
+import random as rd
 
 
 class Board:
@@ -154,7 +155,19 @@ class Game:
             move = (action + 2) % 4
         else:
             move = action % 4
+
         piece.move(self.board, move)
+
+    def execute_freely(self, action):
+        if self.current_player == 0 and action >= 12:
+            return 3
+        piece = self.board.pieces[action // 4]
+        if action >= 12:
+            move = (action + 2) % 4
+        else:
+            move = action % 4
+
+        return piece.simul_move(self.board, move)
 
     def check_events(self, events):
         if events is None:
@@ -218,8 +231,6 @@ class Game:
         if self.board.errors[-1] != 0:
             return next_state, -5, 0, True
         if self.board.ended:
-            # print(f"Game ended, winner: {self.board.winner}")
-
             if self.board.winner == 1:
                 self.reset()
                 if opponent:
@@ -232,7 +243,7 @@ class Game:
                 return next_state, 100, -100, True
         return next_state, 1, 0, False
 
-    def step(self, action=1):
+    def step(self, action=1, random_action=False):
         """
         Executes a single step in the environment based on the given action. The function
         handles the logic for updating the current state, calculating rewards, and determining
@@ -244,14 +255,20 @@ class Game:
             for the action, and a boolean indicating whether the game/process has ended.
         :rtype: tuple
         """
+
+        if random_action:
+            move_return = 1
+            while move_return != 0:
+                action = rd.randint(0 + self.current_player*12, 12 + self.current_player*12-1)
+                move_return = self.execute_freely(action)
+
         self.execute(action)
         self.update()
         next_state = self.board.state.T
-
         if self.board.errors[-1] != 0:
             return next_state, -5, 0, True
         if self.board.ended:
-            if self.board.winner == 1:
+            if self.board.winner != self.current_player:
                 self.reset()
                 return next_state, -100, 100, True
             else:
@@ -261,6 +278,57 @@ class Game:
 
     def reward(self):
         return 0
+
+    def get_possible_actions(self):
+        player = self.current_player
+        moves = [k + 12*player for k in range(0, 12)]
+        pieces = self.board.pieces[0+player*3:3+player*3]
+        board = self.board
+        for i, piece in pieces:
+            for move in moves:
+                if move == 0:
+                    if piece.pos[1] == board.dimensions - 1:
+                        board.errors.append(1)
+                        return 1
+                    elif board[piece.pos[0], piece.pos[1] + 1] != 0:
+                        board.errors.append(2)
+                        return 2
+                    else:
+                        board.errors.append(0)
+                    piece.pos[1] += 1
+
+                elif move == 1:
+                    if piece.pos[0] == board.dimensions - 1:
+                        board.errors.append(1)
+                        return 1
+                    elif board[piece.pos[0] + 1, piece.pos[1]] != 0:
+                        board.errors.append(2)
+                        return 2
+                    else:
+                        board.errors.append(0)
+                    piece.pos[0] += 1
+
+                elif move == 2:
+                    if piece.pos[1] == 0:
+                        board.errors.append(1)
+                        return 1
+                    elif board[piece.pos[0], piece.pos[1] - 1] != 0:
+                        board.errors.append(2)
+                        return 2
+                    else:
+                        board.errors.append(0)
+                    piece.pos[1] -= 1
+
+                elif move == 3:
+                    if piece.pos[0] == 0:
+                        board.errors.append(1)
+                        return 1
+                    elif board[piece.pos[0] - 1, piece.pos[1]] != 0:
+                        board.errors.append(2)
+                        return 2
+                    else:
+                        board.errors.append(0)
+                    piece.pos[0] -= 1
 
 
 class Text:

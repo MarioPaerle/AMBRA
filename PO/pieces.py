@@ -24,7 +24,6 @@ class Piece:
 
     def move(self, board, move):
         """Move The piece of one step in the given direction (clockwise starting from the top)"""
-
         if move == 0:
             if self.pos[1] == board.dimensions - 1:
                 board.errors.append(1)
@@ -68,6 +67,52 @@ class Piece:
             else:
                 board.errors.append(0)
             self.pos[0] -= 1
+
+        return 0
+
+    def simul_move(self, board, move):
+        """Move The piece of one step in the given direction (clockwise starting from the top)"""
+        if move == 0:
+            if self.pos[1] == board.dimensions - 1:
+                board.errors.append(1)
+                return 1
+            elif board[self.pos[0], self.pos[1] + 1] != 0:
+                board.errors.append(2)
+                return 2
+            else:
+                board.errors.append(0)
+
+        elif move == 1:
+            if self.pos[0] == board.dimensions - 1:
+                board.errors.append(1)
+                return 1
+            elif board[self.pos[0] + 1, self.pos[1]] != 0:
+                board.errors.append(2)
+                return 2
+            else:
+                board.errors.append(0)
+
+        elif move == 2:
+            if self.pos[1] == 0:
+                board.errors.append(1)
+                return 1
+            elif board[self.pos[0], self.pos[1] - 1] != 0:
+                board.errors.append(2)
+                return 2
+            else:
+                board.errors.append(0)
+
+        elif move == 3:
+            if self.pos[0] == 0:
+                board.errors.append(1)
+                return 1
+            elif board[self.pos[0] - 1, self.pos[1]] != 0:
+                board.errors.append(2)
+                return 2
+            else:
+                board.errors.append(0)
+
+        return 0
 
     def render(self, game):
         # game.screen.blit(self.image, self.pos*game.size)
