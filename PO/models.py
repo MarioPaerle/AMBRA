@@ -9,6 +9,7 @@ from environment import Game
 import random as rd
 import time
 import matplotlib.pyplot as plt
+from copy import deepcopy
 
 """
 Basic Copied Implementation of Deep Q Network to Study.
@@ -140,7 +141,12 @@ class SimpleRLAgent:
         self.replay_buffer.append((state, action, reward, next_state, done))
 
     def train(self, enemy, env, episodes=400):
+        past_self = []
         for episode in range(episodes):
+            if len(past_self) > 2:
+                enemy = past_self[rd.randint(0, len(past_self)-1)]
+            elif len(past_self) == 10:
+                _ = past_self.pop(0)
             state = env.reset()
             total_reward = 0
             total_enemy_reward = 0
@@ -167,7 +173,7 @@ class SimpleRLAgent:
 
             self.rewards.append(total_reward)
             enemy.rewards.append(total_enemy_reward)
-
+            past_self.append(deepcopy(self))
             print(f"Episode {episode}, Total 1 Reward: {total_reward}, Total enemy Reward: {total_enemy_reward}, Epsilon: {agent.epsilon:.2f}")
 
 class _SimpleRLAgent:
