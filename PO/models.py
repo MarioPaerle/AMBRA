@@ -10,6 +10,7 @@ import random as rd
 import time
 import matplotlib.pyplot as plt
 from copy import deepcopy
+import pygame
 
 """
 Basic Copied Implementation of Deep Q Network to Study.
@@ -140,7 +141,7 @@ class SimpleRLAgent:
     def store_experience(self, state, action, reward, next_state, done):
         self.replay_buffer.append((state, action, reward, next_state, done))
 
-    def train(self, enemy, env, episodes=400):
+    def train(self, enemy, env, episodes=100):
         past_self = []
         for episode in range(episodes):
             if len(past_self) > 2:
@@ -380,3 +381,24 @@ if __name__ == '__main__':
     plt.plot(moving_average(agent.rewards, 10))
     plt.plot(moving_average(agent2.rewards, 10))
     plt.show()
+
+    state = env.board.state.T
+    cp = 3
+
+    # SPERIMENTALE PIENO DI PROBLEMI!
+    while True:
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if cp != 3 and env.current_player != cp:
+                action = agent.get_action(state)
+                next_state, reward1, enemy_reward1, done = env.step(action, False)
+            cp = env.current_player
+
+
+
+        if not env.board.ended:
+            env.update(events)
+        pygame.display.flip()
