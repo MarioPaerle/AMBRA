@@ -141,7 +141,7 @@ class SimpleRLAgent:
     def store_experience(self, state, action, reward, next_state, done):
         self.replay_buffer.append((state, action, reward, next_state, done))
 
-    def train(self, enemy, env, episodes=100):
+    def train(self, enemy, env, episodes=500):
         past_self = []
         for episode in range(episodes):
             if len(past_self) > 2:
